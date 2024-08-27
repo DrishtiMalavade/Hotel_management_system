@@ -132,32 +132,34 @@ class CustomerWindow:
         btnUpd.grid(row=0,column=1, padx=5)
 
         #delete
-        btnDel= Button(btn_frame, text="Delete", font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
+        btnDel= Button(btn_frame, text="Delete", command=self.delete, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
         btnDel.grid(row=0,column=2, padx=5)
 
         #reset
-        btnReset= Button(btn_frame, text="Reset", font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
+        btnReset= Button(btn_frame, text="Reset", command=self.reset, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
         btnReset.grid(row=0,column=3, padx=5)
     
-        #table frame
+        #table frame for search
         tableframe= LabelFrame(self.root,text="View Details and Search System",padx=2,font=("times new roman",12,"bold"))
         tableframe.place(x=435,y=50,width=733,height=450)
-
-
+        
         label_search= Label(tableframe, text="Search By ", font=("times new roman",12,"bold"), bg="#002b64", fg="#fefcf0")
         label_search.grid(row=0,column=0, sticky=W)
 
-        searchbox= ttk.Combobox(tableframe, font=("times new roman",12,"bold"), width=27, state="readonly")
-        searchbox["value"]=("Mobile Number", "Reference numer", "Name")
+        self.search_var= StringVar()
+        searchbox= ttk.Combobox(tableframe, textvariable=self.search_var, font=("times new roman",12,"bold"), width=27, state="readonly")
+        searchbox["value"] = ("mobile", "ref", "name")
+
         searchbox.grid(row=0, column=1)
 
-        txtsearch= ttk.Entry(tableframe, font=("times new roman",12,"bold"), width=27)
+        self.search_txt= StringVar()
+        txtsearch= ttk.Entry(tableframe, textvariable=self.search_txt, font=("times new roman",12,"bold"), width=27)
         txtsearch.grid(row=0,column=2, padx=5)
 
-        btnSearch= Button(tableframe, text="Add", font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
+        btnSearch= Button(tableframe, text="Search", command=self.search, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
         btnSearch.grid(row=0,column=3, padx=5)
 
-        btnShowall= Button(tableframe, text="Update", font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
+        btnShowall= Button(tableframe, text="Show All", command=self.fetch_data, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
         btnShowall.grid(row=0,column=4, padx=5)
 
         #show data table
@@ -259,15 +261,57 @@ class CustomerWindow:
             conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement") #your mysql password here
             myCursor= conn.cursor()
             myCursor.execute("update customer set name=%s, momname=%s, gender=%s, postcode=%s, mobile=%s, email=%s, nationality=%s, idproof=%s, idnumber=%s, address=%s where ref=%s", (self.varName.get(),self.varMomname.get(),self.varGender.get(),self.varPost.get(),self.varMobile.get(),self.varEmail.get(),self.varNationality.get(),self.varIdproof.get(),self.varIdnum.get(),self.varAddress.get(),self.varRef.get()))
-
             conn.commit()
             self.fetch_data()
             conn.close()
             messagebox.showinfo("Update", "User Updated Successfully", parent= self.root)
 
+    def delete(self):
+        delete= messagebox.askyesno("Hotel management system", "Do you want to delete this customer", parent= self.root)
+        if delete>0:
+            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+            myCursor= conn.cursor()
+            query="delete from customer where Ref=%s"
+            value=(self.varRef.get(),)
+            myCursor.execute(query,value)
+            #myCursor.execute("")    
+        else:
+            if not delete:
+                return
+        conn.commit()
+        self.fetch_data()
+        conn.close()
 
 
+    def reset(self):
+        #self.varRef.set("")
+        self.varName.set("")
+        self.varMomname.set("")
+        self.varGender.set("")
+        self.varPost.set("")
+        self.varMobile.set("")
+        self.varEmail.set("")
+        self.varNationality.set("")
+        self.varIdproof.set("")
+        self.varIdnum.set("")
+        self.varAddress.set("")
 
+        x= random.randint(1000,9999)
+        self.varRef.set(str(x))
+
+    def search(self):
+        conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+        myCursor= conn.cursor()
+        myCursor.execute("select * from customer where " + str(self.search_var.get()) + " LIKE '%" + str(self.search_txt.get()) + "%'")
+
+        rows= myCursor.fetchall()
+        if len (rows)!=0:
+            self.cust_datalist.delete(*self.cust_datalist.get_children())
+            for i in rows:
+                self.cust_datalist.insert("", END, values=i)
+            
+            conn.commit()
+        conn.close()
 
 
 if __name__ == "__main__":
