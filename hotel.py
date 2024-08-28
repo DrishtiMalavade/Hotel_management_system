@@ -1,6 +1,7 @@
 from tkinter import *
 from PIL import Image, ImageTk
 from customer import CustomerWindow
+from room import RoomBooking
 
 class HotelManagementSystem:
     def __init__(self, root):
@@ -10,14 +11,14 @@ class HotelManagementSystem:
         #self.root.configure(bg="#f0f0f0")
 
         # Header image
-        img1 = Image.open(r" ") # Path to the image
+        img1 = Image.open(r"C:\Users\Lenovo\Desktop\hotel-management\images\hotelheader.png")
         self.photoimg1 = ImageTk.PhotoImage(img1)
 
         labelimg1 = Label(self.root, image=self.photoimg1)
         labelimg1.place(x=0, y=0, width=1550, height=190)
 
         # Logo
-        img2 = Image.open(r" ") # Path to the image
+        img2 = Image.open(r"C:\Users\Lenovo\Desktop\hotel-management\images\hotellogo.png")
         img2 = img2.resize((200, 200), Image.LANCZOS)  
         self.photoimg2 = ImageTk.PhotoImage(img2)
 
@@ -39,7 +40,7 @@ class HotelManagementSystem:
         custbtn = Button(buttonframe, text="Customer", command=self.customerdetails, width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
         custbtn.grid(row=0, column=0, sticky="nsew")
 
-        roombtn = Button(buttonframe, text="Rooms", width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
+        roombtn = Button(buttonframe, text="Rooms", command=self.roomdetails, width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
         roombtn.grid(row=1, column=0, sticky="nsew")
 
         detailsbtn = Button(buttonframe, text="Details", width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
@@ -63,8 +64,11 @@ class HotelManagementSystem:
         self.new_window = Toplevel(self.root)
         self.app = CustomerWindow(self.new_window)
 
+    def roomdetails(self):
+        self.new_window = Toplevel(self.root)
+        self.app = RoomBooking(self.new_window)
+
 if __name__ == "__main__":
     root = Tk()
     obj = HotelManagementSystem(root)
     root.mainloop()
-
