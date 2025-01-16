@@ -4,16 +4,15 @@ from time import strftime
 from datetime import datetime
 import mysql.connector
 from tkinter import messagebox
+import tempfile, os
 
 class RoomBooking:
     def __init__(self, root):
         self.root = root
         self.root.title("Room booking")
-        self.root.geometry("1170x520+190+183")
-        #self.root.configure(bg="#f0f0f0")
+        self.root.geometry("1330x565+200+220")
 
         #variables
-
         self.varRef= StringVar()
         self.varCheckin= StringVar()
         self.varCheckout= StringVar()
@@ -27,58 +26,65 @@ class RoomBooking:
 
         #title
         label_title = Label(self.root, text="Room Booking", font=("times new roman",18,"bold"), bg="#002b64", fg="#fefcf0")
-        label_title.place(x=0,y=0,width=1170,height=50)
+        label_title.place(x=0,y=0,width=1330,height=50)
 
         #label frame
         labelframeleft = LabelFrame(self.root,text="Rooms and Availability",padx=2,font=("times new roman",12,"bold"))
-        labelframeleft.place(x=5,y=50,width=425,height=450)
+        labelframeleft.place(x=7,y=56,width=470,height=497) 
 
         #labels and entry
         #customer ref
         label_custref= Label(labelframeleft, text="Reference Number ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_custref.grid(row=0,column=0, sticky=W)
 
-        entry_ref= ttk.Entry(labelframeleft, textvariable=self.varRef, width=20,font=("times new roman",12,"bold"))
+        entry_ref= ttk.Entry(labelframeleft, textvariable=self.varRef, width=30,font=("times new roman",12,"bold"))
         entry_ref.grid(row=0,column=1, sticky=W)
 
         #fetch data button
         btnFetch= Button(labelframeleft, command=self.fetch_ref, text="Fetch", font=("times new roman",8), bg="#002b64", fg="#fefcf0", width=11, relief="flat")
-        btnFetch.place(x=298,y=5)
+        btnFetch.place(x=348,y=5)
 
         #checkin
         label_checkin= Label(labelframeleft, text="Check In ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_checkin.grid(row=1,column=0, sticky=W)
 
-        entry_checkin= ttk.Entry(labelframeleft, textvariable=self.varCheckin, width=29,font=("times new roman",12,"bold"))
+        entry_checkin= ttk.Entry(labelframeleft, textvariable=self.varCheckin, width=35,font=("times new roman",12,"bold"))
         entry_checkin.grid(row=1,column=1)
 
         #checkout
         label_checkout= Label(labelframeleft, text="Check Out", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_checkout.grid(row=2,column=0, sticky=W)
 
-        entry_checkout= ttk.Entry(labelframeleft, textvariable=self.varCheckout, width=29,font=("times new roman",12,"bold"))
-        entry_checkout.grid(row=2,column=1)
-        
-        #roomtype
-        label_roomtype= Label(labelframeleft, text="Room Type ", font=("times new roman",12,"bold"), padx=2, pady=6)
-        label_roomtype.grid(row=3,column=0, sticky=W)
+        entry_checkout= ttk.Entry(labelframeleft, textvariable=self.varCheckout, width=35,font=("times new roman",12,"bold"))
+        entry_checkout.grid(row=2,column=1) 
 
-        roomtype_box= ttk.Combobox(labelframeleft, textvariable=self.varRoomtype, font=("times new roman",12,"bold"), width=27, state="readonly")
-        roomtype_box["value"]=("Single", "Double", "Delux", "Suite")
+        # Room Type
+        label_roomtype = Label(labelframeleft, text="Room Type ", font=("times new roman", 12, "bold"), padx=2, pady=6)
+        label_roomtype.grid(row=3, column=0, sticky=W)
+
+        roomtype_box = ttk.Combobox(labelframeleft, textvariable=self.varRoomtype, font=("times new roman", 12, "bold"), width=33, state="readonly")
+        roomtype_box["value"] = ("Single", "Double", "Delux", "Suite")
         roomtype_box.grid(row=3, column=1)
+        
+        # Bind the combobox to call the update_availroom function on selection change
+        roomtype_box.bind("<<ComboboxSelected>>", self.update_availroom)
 
-        #room availibility
-        label_availroom= Label(labelframeleft, text="Available Room ", font=("times new roman",12,"bold"), padx=2, pady=6)
-        label_availroom.grid(row=4,column=0, sticky=W)
+        # Available Room
+        label_availroom = Label(labelframeleft, text="Available Room ", font=("times new roman", 12, "bold"), padx=2, pady=6)
+        label_availroom.grid(row=4, column=0, sticky=W)
 
-        entry_availroom= ttk.Entry(labelframeleft, textvariable=self.varAvailability, width=29,font=("times new roman",12,"bold"))
-        entry_availroom.grid(row=4,column=1)
+        self.availroom_box = ttk.Combobox(labelframeleft, textvariable=self.varAvailability, font=("times new roman", 12, "bold"), width=33, state="readonly")
+        self.availroom_box.grid(row=4, column=1)
+
+        # Database connection for fetching room numbers
+        self.conn = mysql.connector.connect(host="localhost", username="root", password="Mysql@19", database="management")
+        self.myCursor = self.conn.cursor()
 
         #meal 
         label_mealtype= Label(labelframeleft, text="Meal ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_mealtype.grid(row=5,column=0, sticky=W)
 
-        mealtype_box= ttk.Combobox(labelframeleft, textvariable=self.varMeal, font=("times new roman",12,"bold"), width=27, state="readonly")
+        mealtype_box= ttk.Combobox(labelframeleft, textvariable=self.varMeal, font=("times new roman",12,"bold"), width=33, state="readonly")
         mealtype_box["value"]=("No", "Breakfast", "Dinner", "Buffet")
         mealtype_box.grid(row=5, column=1)
 
@@ -86,58 +92,64 @@ class RoomBooking:
         label_days= Label(labelframeleft, text="Number of Days ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_days.grid(row=6,column=0, sticky=W)
 
-        entry_days= ttk.Entry(labelframeleft, textvariable=self.varNoofdays, width=29,font=("times new roman",12,"bold"))
+        entry_days= ttk.Entry(labelframeleft, textvariable=self.varNoofdays, width=35,font=("times new roman",12,"bold"))
         entry_days.grid(row=6,column=1)
 
         #tax
         label_tax= Label(labelframeleft, text="Tax Paid ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_tax.grid(row=7,column=0, sticky=W)
 
-        entry_tax= ttk.Entry(labelframeleft, textvariable=self.varPaidtax, width=29,font=("times new roman",12,"bold"))
+        entry_tax= ttk.Entry(labelframeleft, textvariable=self.varPaidtax, width=35,font=("times new roman",12,"bold"))
         entry_tax.grid(row=7,column=1)
 
         #sub total
         label_subtotal= Label(labelframeleft, text="Sub Total ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_subtotal.grid(row=9,column=0, sticky=W)
 
-        entry_subtotal= ttk.Entry(labelframeleft, textvariable=self.varTotal, width=29,font=("times new roman",12,"bold"))
+        entry_subtotal= ttk.Entry(labelframeleft, textvariable=self.varTotal, width=35,font=("times new roman",12,"bold"))
         entry_subtotal.grid(row=9,column=1)
 
         #Total cose
         label_totalcost= Label(labelframeleft, text="Total Cost ", font=("times new roman",12,"bold"), padx=2, pady=6)
         label_totalcost.grid(row=10,column=0, sticky=W)
 
-        entry_totalcost= ttk.Entry(labelframeleft, textvariable=self.varActualtotal, width=29,font=("times new roman",12,"bold"))
+        entry_totalcost= ttk.Entry(labelframeleft, textvariable=self.varActualtotal, width=35,font=("times new roman",12,"bold"))
         entry_totalcost.grid(row=10,column=1)
 
-        #bill
-        btnBill= Button(labelframeleft, text="Bill", command=self.total, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
-        btnBill.grid(row=11,column=0, padx=5, sticky=W)
+        btn_billframe= Frame(labelframeleft, bd=2)
+        btn_billframe.place(x=0,y=350, width=450,height=40)
 
+        # Bill button
+        btnBill = Button(btn_billframe, text="Bill", command=self.total, font=("times new roman", 10, "bold"), bg="#002b64", fg="#fefcf0", width=12)
+        btnBill.grid(row=11, column=0, padx=7, sticky=W)
+
+        # Print button
+        btnPrint = Button(btn_billframe, text="Print", command=self.print_bill, font=("times new roman", 10, "bold"), bg="#002b64", fg="#fefcf0", width=12)
+        btnPrint.grid(row=11, column=1, padx=7, sticky=W)
 
         #buttons
         btn_frame= Frame(labelframeleft, bd=2)
-        btn_frame.place(x=0,y=390, width=412,height=40)
+        btn_frame.place(x=0,y=390, width=450,height=40)
 
         #add entry
-        btnAdd= Button(btn_frame, text="Add", command=self.add_data, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
-        btnAdd.grid(row=0,column=0, padx=5)
+        btnAdd= Button(btn_frame, text="Add", command=self.add_data, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=12)
+        btnAdd.grid(row=0,column=0, padx=7)
 
         #update
-        btnUpd= Button(btn_frame, text="Update", command=self.update, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
-        btnUpd.grid(row=0,column=1, padx=5)
+        btnUpd= Button(btn_frame, text="Update", command=self.update, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=12)
+        btnUpd.grid(row=0,column=1, padx=7)
 
         #delete
-        btnDel= Button(btn_frame, text="Delete", command=self.delete, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
-        btnDel.grid(row=0,column=2, padx=5)
+        btnDel= Button(btn_frame, text="Delete", command=self.delete, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=12)
+        btnDel.grid(row=0,column=2, padx=7)
 
         #reset
-        btnReset= Button(btn_frame, text="Reset", command=self.reset, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
-        btnReset.grid(row=0,column=3, padx=5)
+        btnReset= Button(btn_frame, text="Reset", command=self.reset, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=12)
+        btnReset.grid(row=0,column=3, padx=7)
 
         #table frame for system
         tableframe= LabelFrame(self.root,text="View Details and Search System",padx=2,font=("times new roman",12,"bold"))
-        tableframe.place(x=435,y=250,width=733,height=250)
+        tableframe.place(x=485,y=302,width=833,height=250)
 
         label_search= Label(tableframe, text="Search By ", font=("times new roman",12,"bold"), bg="#002b64", fg="#fefcf0")
         label_search.grid(row=0,column=0, sticky=W)
@@ -158,15 +170,14 @@ class RoomBooking:
         btnShowall= Button(tableframe, text="Show All", command=self.fetch_data, font=("times new roman",10,"bold"), bg="#002b64", fg="#fefcf0", width=10)
         btnShowall.grid(row=0,column=4, padx=5)
 
-        #show data tavle
-
+        #show data table
         details_frame= Frame(tableframe, bd=2, relief= RIDGE)
-        details_frame.place(x=0,y=40, width=720,height=180)
+        details_frame.place(x=0,y=40, width=820,height=180)
 
         scroll_x= ttk.Scrollbar(details_frame, orient= HORIZONTAL)
         scroll_y= ttk.Scrollbar(details_frame, orient= VERTICAL)
 
-        self.room_datalist = ttk.Treeview(details_frame, column=("ref", "checkin", "checkout", "roomtype", "roomavail", "meal", "noofdays"), xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
+        self.room_datalist = ttk.Treeview(details_frame, column=("ref", "checkin", "checkout", "roomtype", "availability", "meal", "noofdays"), xscrollcommand=scroll_x.set, yscrollcommand=scroll_y.set)
 
         scroll_x.pack(side=BOTTOM, fill=X)
         scroll_y.pack(side=RIGHT, fill=Y)
@@ -178,7 +189,7 @@ class RoomBooking:
         self.room_datalist.heading("checkin", text="Check In")
         self.room_datalist.heading("checkout", text="Check Out")
         self.room_datalist.heading("roomtype", text="Room Type")
-        self.room_datalist.heading("roomavail", text="Room Availability")
+        self.room_datalist.heading("availability", text="Room Availability")
         self.room_datalist.heading("meal", text="Meal")
         self.room_datalist.heading("noofdays", text="No of days")
 
@@ -188,19 +199,35 @@ class RoomBooking:
         self.room_datalist.column("checkin", width=100)
         self.room_datalist.column("checkout", width=100)
         self.room_datalist.column("roomtype", width=100)
-        self.room_datalist.column("roomavail", width=100)
+        self.room_datalist.column("availability", width=100)
         self.room_datalist.column("meal", width=100)
         self.room_datalist.column("noofdays", width= 100)
         self.room_datalist.pack(fill=BOTH, expand=1)
         self.room_datalist.bind("<ButtonRelease-1>", self.get_cursor)
         self.fetch_data()
 
+    def update_availroom(self, event):
+        # Get selected room type from the roomtype_box
+        type = self.varRoomtype.get()
+
+        # Fetch room numbers based on selected room type
+        query = f"SELECT roomno FROM details WHERE type = '{type}'"
+        self.myCursor.execute(query)
+        dataRows = self.myCursor.fetchall()
+
+        # Extract room numbers from the fetched data
+        room_numbers = [row[0] for row in dataRows]
+
+        # Update the available room combobox with the filtered room numbers
+        self.availroom_box["value"] = room_numbers
+        self.availroom_box.set('')  # Optionally, clear the selection
+
     def add_data(self):
         if self.varRef.get()=="" or self.varCheckin.get()=="":
             messagebox.showerror("Error", "All Fields Are Required", parent= self.root)
         else:
             try:
-                conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+                conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
                 myCursor= conn.cursor()
                 myCursor.execute("insert into room values(%s,%s,%s,%s,%s,%s,%s)",(self.varRef.get(),self.varCheckin.get(),self.varCheckout.get(),self.varRoomtype.get(),self.varAvailability.get(),self.varMeal.get(),self.varNoofdays.get()))
 
@@ -213,7 +240,7 @@ class RoomBooking:
                 messagebox.showerror("Warning", f"Something Went Wrong:{str(es)}", parent= self.root)
 
     def fetch_data(self):
-        conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+        conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
         myCursor= conn.cursor()
         myCursor.execute("select * from room")
         dataRows= myCursor.fetchall()
@@ -223,7 +250,6 @@ class RoomBooking:
                 self.room_datalist.insert("", END, values=i)
             conn.commit()
         conn.close()
-
 
     def get_cursor(self, event=""):
         cursorRow= self.room_datalist.focus()
@@ -238,25 +264,23 @@ class RoomBooking:
         self.varMeal.set(row[5])
         self.varNoofdays.set(row[6])
 
-
     def update(self):
         if self.varRef.get()=="":
             messagebox.showerror("Error","Please Enter Ref Number", parent= self.root)
         else:
-            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
             myCursor= conn.cursor()
-            myCursor.execute("update room set checkin=%s, checkout=%s, roomtype=%s, roomavail=%s, meal=%s, noofdays=%s where ref=%s", (self.varCheckin.get(),self.varCheckout.get(),self.varRoomtype.get(),self.varAvailability.get(),self.varMeal.get(),self.varNoofdays.get(),self.varRef.get()))
+            myCursor.execute("update room set checkin=%s, checkout=%s, roomtype=%s, availability=%s, meal=%s, noofdays=%s where ref=%s", (self.varCheckin.get(),self.varCheckout.get(),self.varRoomtype.get(),self.varAvailability.get(),self.varMeal.get(),self.varNoofdays.get(),self.varRef.get()))
 
             conn.commit()
             self.fetch_data()
             conn.close()
             messagebox.showinfo("Update", "User Updated Successfully", parent= self.root)
 
-
     def delete(self):
         delete= messagebox.askyesno("Hotel management system", "Do you want to delete this booking", parent= self.root)
         if delete>0:
-            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
             myCursor= conn.cursor()
             query="delete from room where Ref=%s"
             value=(self.varRef.get(),)
@@ -270,7 +294,6 @@ class RoomBooking:
         self.fetch_data()
         conn.close()
 
-
     def reset(self):
         #self.varRef.set("")
         self.varCheckin.set("")
@@ -283,9 +306,8 @@ class RoomBooking:
         self.varActualtotal("")
         self.varTotal("")
 
-
     def search(self):
-        conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+        conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
         myCursor= conn.cursor()
         myCursor.execute("select * from room where " + str(self.search_var.get()) + " LIKE '%" + str(self.search_txt.get()) + "%'")
 
@@ -298,12 +320,11 @@ class RoomBooking:
             conn.commit()
         conn.close()
 
-
     def fetch_ref(self):
         if self.varRef.get()=="":
             messagebox.showerror("Error","Please Enter Reference Number", parent=self.root)
         else:
-            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+            conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
             myCursor= conn.cursor()
             query=("select Name from customer where ref=%s")
             value=(self.varRef.get(),)
@@ -317,7 +338,7 @@ class RoomBooking:
                 conn.close()
 
                 showDataframe= Frame(self.root,padx=2, bd=4, relief=RIDGE)
-                showDataframe.place(x=455,y=60,width=700,height=180)
+                showDataframe.place(x=485,y=64,width=829,height=180)
                 #name
                 labelName= Label(showDataframe, text="Name", font=("times new roman",12,"bold"))
                 labelName.place(x=0,y=0)
@@ -325,7 +346,7 @@ class RoomBooking:
                 label= Label(showDataframe, text=row[0], font=("times new roman",12,"bold"))
                 label.place(x=90,y=0)
                 #gender
-                conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+                conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
                 myCursor= conn.cursor()
                 query=("select Gender from customer where ref=%s")
                 value=(self.varRef.get(),)
@@ -387,7 +408,7 @@ class RoomBooking:
                 label6.place(x=390,y=0)
 
                 #address
-                conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database="hotelmanagement")
+                conn= mysql.connector.connect(host= "localhost", username="root", password=" ", database=" ")
                 myCursor= conn.cursor()
                 query=("select Address from customer where ref=%s")
                 value=(self.varRef.get(),)
@@ -406,24 +427,84 @@ class RoomBooking:
         inDate= datetime.strptime(inDate, "%d/%m/%Y")
         outDate= datetime.strptime(outDate, "%d/%m/%Y")
         self.varNoofdays.set(abs(outDate-inDate).days)
+    
+        # Define prices for room and meal combinations
+        room_meal_prices = {
+            ("No", "Single"): (0, 1000),
+            ("No", "Double"): (0, 1500),
+            ("No", "Delux"): (0, 2000),
+            ("No", "Suite"): (0, 3000),
+            ("Breakfast", "Single"): (300, 1000),
+            ("Breakfast", "Double"): (300, 1500),
+            ("Breakfast", "Delux"): (300, 2000),
+            ("Breakfast", "Suite"): (300, 3000),
+            ("Dinner", "Single"): (500, 1000),
+            ("Dinner", "Double"): (500, 1500),
+            ("Dinner", "Delux"): (500, 2000),
+            ("Dinner", "Suite"): (500, 3000),
+            ("Buffet", "Single"): (700, 1000),
+            ("Buffet", "Double"): (700, 1500),
+            ("Buffet", "Delux"): (700, 2000),
+            ("Buffet", "Suite"): (700, 3000),
+        }
 
-        if (self.varMeal.get()=="Breakfast" and self.varRoomtype.get()=="Double"):
-            q1=float(300)
-            q2=float(1500)
-            q3=float(self.varNoofdays.get())
-            q4=float((q1+q2)*q3)
+        try:
+            # Get user input values
+            meal = self.varMeal.get()
+            room = self.varRoomtype.get()
+            num_days = float(self.varNoofdays.get())  # Number of days
 
-            tax = 0.1 * q4  # 10% tax
-            subtotal = q4
-            total = subtotal + tax
+            # Check if the combination exists
+            if (meal, room) in room_meal_prices:
+                meal_price, room_price = room_meal_prices[(meal, room)]
 
-            tax_display = "Rs. " + str("%.2f" % tax)
-            subtotal_display = "Rs. " + str("%.2f" % subtotal)
-            total_display = "Rs. " + str("%.2f" % total)
+                # Calculate subtotal, tax, and total
+                subtotal = (meal_price + room_price) * num_days
+                tax = 0.1 * subtotal  # 10% tax
+                total = subtotal + tax
 
-            self.varPaidtax.set(tax_display)
-            self.varTotal.set(subtotal_display)
-            self.varActualtotal.set(total_display)
+                # Display results
+                self.varPaidtax.set(f"Rs. {tax:.2f}")
+                self.varTotal.set(f"Rs. {subtotal:.2f}")
+                self.varActualtotal.set(f"Rs. {total:.2f}")
+            else:
+                messagebox.showerror("Error", "Invalid room and meal combination")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+
+    def print_bill(self):
+        if self.varTotal.get() == "":
+            messagebox.showerror("Error", "Bill is empty")
+            return
+
+        try:
+            # Create temporary file
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".txt")
+            bill_path = temp_file.name
+
+            # Write bill details to the file
+            with open(bill_path, "w") as file:
+                file.write("Billing for stay at The Starfish\n")
+                file.write("=" * 40 + "\n")
+                file.write(f"Reference Number: {self.varRef.get()}\n")
+                file.write(f"Check In: {self.varCheckin.get()}\n")
+                file.write(f"Check Out: {self.varCheckout.get()}\n")
+                file.write(f"Room Type: {self.varRoomtype.get()}\n")
+                file.write(f"Available Room: {self.varAvailability.get()}\n")
+                file.write(f"Meal Plan: {self.varMeal.get()}\n")
+                file.write(f"Number of Days: {self.varNoofdays.get()}\n")
+                file.write(f"Tax Paid: {self.varPaidtax.get()}\n")
+                file.write(f"Sub Total: {self.varTotal.get()}\n")
+                file.write(f"Total Cost: {self.varActualtotal.get()}\n")
+                file.write("=" * 40 + "\n")
+                file.write("Thank you for staying with us!\n")
+
+            # Print the file
+            os.startfile(bill_path, "print")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred while printing: {e}")
+
 
 if __name__ == "__main__":
     root = Tk()
