@@ -2,23 +2,23 @@ from tkinter import *
 from PIL import Image, ImageTk
 from customer import CustomerWindow
 from room import RoomBooking
+from details import Details
 
 class HotelManagementSystem:
     def __init__(self, root):
         self.root = root
         self.root.title("The Starfish")
-        self.root.geometry("1550x800+0+0")
-        #self.root.configure(bg="#f0f0f0")
+        self.root.geometry("1920x1080+0+0")
 
         # Header image
-        img1 = Image.open(r"C:\Users\Lenovo\Desktop\hotel-management\images\hotelheader.png")
+        img1 = Image.open(r"images\hotellheader.png")
         self.photoimg1 = ImageTk.PhotoImage(img1)
 
         labelimg1 = Label(self.root, image=self.photoimg1)
         labelimg1.place(x=0, y=0, width=1550, height=190)
 
         # Logo
-        img2 = Image.open(r"C:\Users\Lenovo\Desktop\hotel-management\images\hotellogo.png")
+        img2 = Image.open(r"images\hotellogo.png")
         img2 = img2.resize((200, 200), Image.LANCZOS)  
         self.photoimg2 = ImageTk.PhotoImage(img2)
 
@@ -43,7 +43,7 @@ class HotelManagementSystem:
         roombtn = Button(buttonframe, text="Rooms", command=self.roomdetails, width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
         roombtn.grid(row=1, column=0, sticky="nsew")
 
-        detailsbtn = Button(buttonframe, text="Details", width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
+        detailsbtn = Button(buttonframe, text="Details", command=self.details, width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
         detailsbtn.grid(row=2, column=0, sticky="nsew")
 
         reportbtn = Button(buttonframe, text="Report", width=12, font=("times new roman", 20, "bold"), bg="#002b64", fg="#fefcf0", bd=0, cursor="hand1")
@@ -53,12 +53,12 @@ class HotelManagementSystem:
         logoutbtn.grid(row=4, column=0, sticky="nsew")
 
         # Start image
-        img3 = Image.open(r"C:\Users\Lenovo\Desktop\hotel-management\images\right.png")
-        img3 = img3.resize((1300, 590), Image.LANCZOS)
+        img3 = Image.open(r"images\rightt.png")
+        img3 = img3.resize((1620, 600), Image.LANCZOS)
         self.photoimg3 = ImageTk.PhotoImage(img3)
 
         labelimg3 = Label(self.root, image=self.photoimg3)
-        labelimg3.place(x=200, y=190, width=1300, height=580)
+        labelimg3.place(x=200, y=190, width=1620, height=600)
 
     def customerdetails(self):
         self.new_window = Toplevel(self.root)
@@ -67,6 +67,10 @@ class HotelManagementSystem:
     def roomdetails(self):
         self.new_window = Toplevel(self.root)
         self.app = RoomBooking(self.new_window)
+
+    def details(self):
+        self.new_window = Toplevel(self.root)
+        self.app = Details(self.new_window)
 
 if __name__ == "__main__":
     root = Tk()
